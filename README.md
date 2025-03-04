@@ -194,14 +194,40 @@ The model uses:
 
 Models are saved in the `models/` directory with timestamped filenames.
 
+## Web Interface
+
+The application now includes a web interface for easier interaction with your financial data:
+
+### Web Features
+- **Dashboard**: Overview of financial situation with key metrics and charts
+- **Transactions**: Browse, search, filter, and categorize all transactions
+- **Budgets**: Create and manage category-based budgets
+- **Goals**: Set up and track financial goals
+- **Forecast**: View cash flow projections based on recurring transactions
+- **Smart Categorization**: Bulk categorization of transactions with ML assistance
+- **Analysis**: Spending patterns and insights with visualizations
+
+### Running the Web Interface
+
+Install the UI dependencies:
+```
+pip install -r requirements-ui.txt
+```
+
+Run the web interface with:
+```
+python -m src.ui
+```
+
+Then open your browser to http://localhost:5000
+
 ## Future Improvements
 
-- Web interface for transaction viewing and classification
-- Data visualization and reporting
-- Budget tracking and planning
 - Tax report generation for rental properties
 - Enhanced ML features using transaction amounts and categories
-- Monthly and yearly spending reports
+- Mobile-friendly interface
+- Financial document upload and storage
+- Multiple user accounts
 
 ## License
 

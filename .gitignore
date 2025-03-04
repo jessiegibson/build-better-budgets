@@ -1,3 +1,4 @@
-./data:
-
-mod.go
+./data/*
+./go.mod
+./db/
+.env

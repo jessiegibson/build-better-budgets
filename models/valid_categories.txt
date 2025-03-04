@@ -1,0 +1,51 @@
+Restaurant-Bar & Caf√©
+GARDEN/SEASONAL
+PAINT
+HARDWARE
+PLUMBING
+Merchandise & Supplies-Groceries
+BLDG. MATERIALS
+ELECTRICAL
+Transportation-Rail Services
+Merchandise & Supplies-Hardware Supplies
+ACH_DEBIT
+Home Improvement
+Restaurant-Restaurant
+LUMBER
+WALL&FLOOR COVER.
+Payments and Credits
+PARTNERFI_TO_CHASE
+ACH_CREDIT
+Merchandise
+Merchandise & Supplies-Pharmacies
+Fees & Adjustments-Fees & Adjustments
+Restaurants
+Merchandise & Supplies-Internet Purchase
+Transportation-Taxis & Coach
+FEES
+MILLWORK
+Transportation-Tolls & Fees
+Services
+Merchandise & Supplies-Mail Order
+Supermarkets
+Other-Miscellaneous
+Transportation-Parking Charges
+Other-Government Services
+Merchandise & Supplies-Computer Supplies
+Business Services-Advertising Services
+Transportation-Fuel
+Travel-Airline
+KIT/BATH
+Business Services-Other Services
+CHASE_TO_PARTNERFI
+Interest
+QUICKPAY_CREDIT
+Transportation-Other Transportation
+MISC_CREDIT
+Merchandise & Supplies-Wholesale Stores
+Communications-Telephone Comm
+Other-Charities
+FEE_TRANSACTION
+QUICKPAY_DEBIT
+ATM
+Gasoline

@@ -1,4 +1,3 @@
 
 def __init__(self):
-    self
-
+    return self
