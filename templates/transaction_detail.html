@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction Details - Budget App{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/transactions">Transactions</a></li>
+                <li class="breadcrumb-item active">Transaction Details</li>
+            </ol>
+        </nav>
+        <h1 class="display-5 mb-4">
+            <i class="fas fa-receipt me-2"></i>Transaction Details
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Transaction Details Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-info-circle me-2"></i>Transaction Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Date:</label>
+                        <p>{{ transaction.date_posted }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Amount:</label>
+                        <p class="{{ 'text-success'  }}">
+                            ${{ "%.2f"|format(transaction.amount|float|abs) }}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Source:</label>
+                        <p>{{ transaction.source }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Description:</label>
+                        <p>{{ transaction.description }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Category:</label>
+                        {% if transaction.category %}
+                        <p><span class="badge bg-info">{{ transaction.category }}</span></p>
+                        {% else %}
+                        <p><span class="badge bg-secondary">Uncategorized</span></p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Notes:</label>
+                        <p>{{ transaction.notes|default("No notes") }}</p>
+                    </div>
+                </div>
+                
+                {% if transaction.details %}
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Details:</label>
+                        <p>{{ transaction.details }}</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Additional classifications -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Classifications:</label>
+                        <ul class="list-group">
+                            {% if transaction.rental_related is not none %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Rental Related
+                                <span class="badge bg-{{ 'success' if transaction.rental_related else 'danger' }} rounded-pill">
+                                    {{ 'Yes' if transaction.rental_related else 'No' }}
+                                </span>
+                            </li>
+                            {% endif %}
+                            
+                            {% if transaction.recurring is not none %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Recurring
+                                <span class="badge bg-{{ 'success' if transaction.recurring else 'danger' }} rounded-pill">
+                                    {{ 'Yes' if transaction.recurring else 'No' }}
+                                </span>
+                            </li>
+                            {% endif %}
+                            
+                            {% if transaction.subscription is not none %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Subscription
+                                <span class="badge bg-{{ 'success' if transaction.subscription else 'danger' }} rounded-pill">
+                                    {{ 'Yes' if transaction.subscription else 'No' }}
+                                </span>
+                            </li>
+                            {% endif %}
+                            
+                            {% if transaction.tax_deductible is not none %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Tax Deductible
+                                <span class="badge bg-{{ 'success' if transaction.tax_deductible else 'danger' }} rounded-pill">
+                                    {{ 'Yes' if transaction.tax_deductible else 'No' }}
+                                </span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Edit Transaction Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-edit me-2"></i>Edit Transaction
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/transaction/{{ transaction.id }}/update">
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category">
+                            <option value="">Uncategorized</option>
+                            {% for category in transaction.categories if transaction.categories %}
+                            <option value="{{ category }}" {% if transaction.category == category %}selected{% endif %}>
+                                {{ category }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3">{{ transaction.notes|default('') }}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Update Transaction</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Related Transactions Card (if any) -->
+        {% if related_transactions %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>
+                    <i class="fas fa-link me-2"></i>Similar Transactions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for tx in related_transactions %}
+                    <a href="/transaction/{{ tx.id }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ tx.description|truncate(30) }}</h6>
+                            <small>{{ tx.date_posted }}</small>
+                        </div>
+                        <div class="d-flex w-100 justify-content-between">
+                            <small class="{{ 'text-success' if tx.amount|float > 0 else 'text-danger' }}">
+                                ${{ "%.2f"|format(tx.amount|float|abs) }}
+                            </small>
+                            {% if tx.category %}
+                            <small class="badge bg-info">{{ tx.category }}</small>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

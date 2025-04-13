@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - Budget App{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">
+            <i class="fas fa-list me-2"></i>Transactions
+        </h1>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>
+            <i class="fas fa-filter me-2"></i>Filters
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="/transactions">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Date Range</label>
+                    <div class="input-group">
+                        <input type="date" class="form-control form-control-sm" name="min_date" 
+                               value="{{ filters.min_date|default('') }}">
+                        <span class="input-group-text">to</span>
+                        <input type="date" class="form-control form-control-sm" name="max_date"
+                               value="{{ filters.max_date|default('') }}">
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Amount Range</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" step="0.01" class="form-control form-control-sm" placeholder="Min" name="min_amount"
+                               value="{{ filters.min_amount|default('') }}">
+                        <span class="input-group-text">to</span>
+                        <span class="input-group-text">$</span>
+                        <input type="number" step="0.01" class="form-control form-control-sm" placeholder="Max" name="max_amount"
+                               value="{{ filters.max_amount|default('') }}">
+                    </div>
+                </div>
+                
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Category</label>
+                    <select class="form-select form-select-sm" name="category">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}" {% if filters.category == category %}selected{% endif %}>
+                            {{ category }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Source</label>
+                    <select class="form-select form-select-sm" name="source">
+                        <option value="">All Sources</option>
+                        {% for source in sources %}
+                        <option value="{{ source }}" {% if filters.source == source %}selected{% endif %}>
+                            {{ source }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2 mb-3">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control form-control-sm" name="description" placeholder="Search text"
+                           value="{{ filters.description|default('') }}">
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 text-end">
+                    <a href="/transactions" class="btn btn-sm btn-secondary">Reset</a>
+                    <button type="submit" class="btn btn-sm btn-primary">Apply Filters</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Transaction List</h5>
+        <div>
+            <a href="/categorize" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-tags me-1"></i>Smart Categorize
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Source</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx.date_posted }}</td>
+                        <td>{{ tx.description|truncate(40) }}</td>
+                        <td>
+                            {% if tx.category %}
+                            <span class="badge bg-info">{{ tx.category }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Uncategorized</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tx.source }}</td>
+                        <td class="{{ 'text-success' if tx.amount|float > 0 else 'text-danger' }}">
+                            ${{ "%.2f"|format(tx.amount|float|abs) }}
+                        </td>
+                        <td>
+                            <a href="/transaction/{{ tx.id }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <nav class="mt-3">
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page - 1 }}{% for key, value in filters.items() %}&{{ key }}={{ value }}{% endfor %}">
+                        Previous
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#">Previous</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item">
+                    <span class="page-link">Page {{ page }}</span>
+                </li>
+                
+                {% if transactions|length >= limit %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page + 1 }}{% for key, value in filters.items() %}&{{ key }}={{ value }}{% endfor %}">
+                        Next
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% else %}
+        <div class="alert alert-info">
+            No transactions found. Try adjusting your filters or import some data first.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

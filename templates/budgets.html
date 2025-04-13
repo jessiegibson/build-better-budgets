@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+
+{% block title %}Your Budgets - Budget App{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="display-5 mb-2">
+                <i class="fas fa-money-bill-wave me-2"></i>Your Budgets
+            </h1>
+            <p class="text-muted">Plan and track your spending by category</p>
+        </div>
+        <div>
+            <a href="/budget/new" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i> Create New Budget
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Active Budget Summary -->
+{% if current_budget %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-star me-2"></i>Current Budget: {{ current_budget.name }}</h5>
+                <div>
+                    <span class="badge bg-primary">{{ current_budget.period|capitalize }}</span>
+                    <span class="badge bg-secondary ms-2">{{ current_budget.start_date }} to {{ current_budget.end_date }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-5">
+                        <div id="budget-chart" class="chart-container" style="height: 300px;"></div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h6>Overall Progress</h6>
+                            <div>
+                                <span class="{{ 'text-success' if current_budget.remaining > 0 else 'text-danger' }}">
+                                    ${{ "%.2f"|format(current_budget.remaining) }} remaining
+                                </span>
+                                <span class="text-muted ms-2">
+                                    ({{ "%.1f"|format(current_budget.percent_used) }}% used)
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div class="progress-bar {{ 'bg-success' if current_budget.percent_used < 80 else 'bg-warning' if current_budget.percent_used < 100 else 'bg-danger' }}" 
+                                 role="progressbar" 
+                                 style="width: {{ min(current_budget.percent_used, 100) }}%;" 
+                                 aria-valuenow="{{ current_budget.percent_used }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ "%.1f"|format(current_budget.percent_used) }}%
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="/budget/{{ current_budget.id }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-search me-1"></i> View Details
+                            </a>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editBudgetModal" 
+                                    data-budget-id="{{ current_budget.id }}">
+                                <i class="fas fa-edit me-1"></i> Edit Budget
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Budget Categories -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list me-2"></i>Budget Categories</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Budgeted</th>
+                                <th>Spent</th>
+                                <th>Remaining</th>
+                                <th class="text-center">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in current_budget.categories %}
+                            <tr>
+                                <td>{{ category.category }}</td>
+                                <td>${{ "%.2f"|format(category.amount) }}</td>
+                                <td>${{ "%.2f"|format(category.actual) }}</td>
+                                <td class="{{ 'text-success' if category.remaining > 0 else 'text-danger' }}">
+                                    ${{ "%.2f"|format(category.remaining) }}
+                                </td>
+                                <td class="text-center" style="width: 20%;">
+                                    <div class="progress">
+                                        <div class="progress-bar {{ 'bg-success' if category.percent_used < 80 else 'bg-warning' if category.percent_used < 100 else 'bg-danger' }}" 
+                                             role="progressbar" 
+                                             style="width: {{ min(category.percent_used, 100) }}%;" 
+                                             aria-valuenow="{{ category.percent_used }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ "%.1f"|format(category.percent_used) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- All Budgets -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>All Budgets</h5>
+            </div>
+            <div class="card-body">
+                {% if budgets %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Period</th>
+                                <th>Dates</th>
+                                <th>Total Budget</th>
+                                <th>Spent</th>
+                                <th class="text-center">Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for budget in budgets %}
+                            <tr>
+                                <td>{{ budget.name }}</td>
+                                <td>{{ budget.period|capitalize }}</td>
+                                <td>{{ budget.start_date }} to {{ budget.end_date }}</td>
+                                <td>${{ "%.2f"|format(budget.total_budget) }}</td>
+                                <td>${{ "%.2f"|format(budget.actual_spent) }}</td>
+                                <td class="text-center">
+                                    {% if budget.percent_used < 80 %}
+                                    <span class="badge bg-success">On Track</span>
+                                    {% elif budget.percent_used < 100 %}
+                                    <span class="badge bg-warning">Close</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Over Budget</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="/budget/{{ budget.id }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-search"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-secondary" 
+                                                data-bs-toggle="modal" data-bs-target="#editBudgetModal" 
+                                                data-budget-id="{{ budget.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> You don't have any budgets yet. Create your first budget to start tracking your spending.
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/budget/new" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i> Create Your First Budget
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget vs Actual Analysis -->
+{% if budget_chart %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Budget vs. Actual Spending</h5>
+            </div>
+            <div class="card-body">
+                <div id="budget-comparison-chart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Edit Budget Modal -->
+<div class="modal fade" id="editBudgetModal" tabindex="-1" aria-labelledby="editBudgetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editBudgetModalLabel">Edit Budget</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-budget-form" method="POST" action="/budget/update">
+                    <input type="hidden" id="edit-budget-id" name="budget_id" value="">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit-name" class="form-label">Budget Name</label>
+                            <input type="text" class="form-control" id="edit-name" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-period" class="form-label">Budget Period</label>
+                            <select class="form-select" id="edit-period" name="period">
+                                <option value="monthly">Monthly</option>
+                                <option value="annual">Annual</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit-start-date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="edit-start-date" name="start_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit-end-date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="edit-end-date" name="end_date" required>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5 class="mb-3">Budget Categories</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12 text-end">
+                            <button type="button" id="edit-adjust-all-btn" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fas fa-sliders-h me-1"></i> Adjust All
+                            </button>
+                            <button type="button" id="edit-add-category-btn" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-plus me-1"></i> Add Category
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="edit-categories-container">
+                        <!-- Categories will be loaded dynamically -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="edit-budget-form" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if budget_chart %}
+<script>
+    const budgetChartData = JSON.parse('{{ budget_chart|safe }}');
+    Plotly.newPlot('budget-comparison-chart', budgetChartData.data, budgetChartData.layout);
+</script>
+{% endif %}
+
+{% if current_budget and current_budget.categories %}
+<script>
+    // Create budget pie chart
+    document.addEventListener('DOMContentLoaded', function() {
+        const categories = [];
+        const amounts = [];
+        {% for category in current_budget.categories %}
+        categories.push("{{ category.category }}");
+        amounts.push({{ category.amount }});
+        {% endfor %}
+        
+        const data = [{
+            type: 'pie',
+            labels: categories,
+            values: amounts,
+            textinfo: 'label+percent',
+            insidetextorientation: 'radial',
+            hole: 0.4
+        }];
+        
+        const layout = {
+            showlegend: false,
+            margin: {t: 10, b: 10, l: 10, r: 10},
+            height: 300
+        };
+        
+        Plotly.newPlot('budget-chart', data, layout);
+    });
+</script>
+{% endif %}
+
+<script>
+    // Handle edit budget modal
+    const editBudgetModal = document.getElementById('editBudgetModal');
+    if (editBudgetModal) {
+        editBudgetModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const budgetId = button.getAttribute('data-budget-id');
+            
+            // Set the budget ID in the form
+            document.getElementById('edit-budget-id').value = budgetId;
+            
+            // Fetch budget details via AJAX
+            fetch(`/budget/${budgetId}/data`)
+                .then(response => response.json())
+                .then(data => {
+                    // Populate form fields
+                    document.getElementById('edit-name').value = data.name;
+                    document.getElementById('edit-period').value = data.period;
+                    document.getElementById('edit-start-date').value = data.start_date;
+                    document.getElementById('edit-end-date').value = data.end_date;
+                    
+                    // Populate categories
+                    const categoriesContainer = document.getElementById('edit-categories-container');
+                    categoriesContainer.innerHTML = '';
+                    
+                    data.categories.forEach((category, index) => {
+                        const categoryRow = document.createElement('div');
+                        categoryRow.className = 'row mb-3 edit-category-row';
+                        categoryRow.innerHTML = `
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" 
+                                       name="category_${index + 1}" 
+                                       value="${category.category}" 
+                                       placeholder="Category name" required>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" 
+                                           name="amount_${index + 1}" 
+                                           value="${category.amount.toFixed(2)}" 
+                                           min="0" step="0.01" placeholder="0.00" required>
+                                </div>
+                                <small class="text-muted">
+                                    Spent so far: $${category.actual.toFixed(2)}
+                                </small>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-danger edit-remove-category-btn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        categoriesContainer.appendChild(categoryRow);
+                    });
+                    
+                    // Add event listeners for the new category remove buttons
+                    document.querySelectorAll('.edit-remove-category-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const container = document.getElementById('edit-categories-container');
+                            if (container.querySelectorAll('.edit-category-row').length > 1) {
+                                this.closest('.edit-category-row').remove();
+                                reindexEditCategories();
+                            } else {
+                                alert('You need at least one category in your budget.');
+                            }
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching budget data:', error);
+                    alert('Failed to load budget details. Please try again.');
+                });
+        });
+    }
+    
+    // Add new category row in edit modal
+    document.getElementById('edit-add-category-btn')?.addEventListener('click', function() {
+        const container = document.getElementById('edit-categories-container');
+        const rows = container.querySelectorAll('.edit-category-row');
+        const newIndex = rows.length + 1;
+        
+        const newRow = document.createElement('div');
+        newRow.className = 'row mb-3 edit-category-row';
+        newRow.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" class="form-control" 
+                       name="category_${newIndex}" placeholder="Category name" required>
+            </div>
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" 
+                           name="amount_${newIndex}" min="0" step="0.01" placeholder="0.00" required>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger edit-remove-category-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(newRow);
+        
+        // Add event listener to the new remove button
+        const newRemoveBtn = newRow.querySelector('.edit-remove-category-btn');
+        newRemoveBtn.addEventListener('click', function() {
+            if (container.querySelectorAll('.edit-category-row').length > 1) {
+                this.closest('.edit-category-row').remove();
+                reindexEditCategories();
+            } else {
+                alert('You need at least one category in your budget.');
+            }
+        });
+    });
+    
+    // Handle adjusting all amounts in edit modal
+    document.getElementById('edit-adjust-all-btn')?.addEventListener('click', function() {
+        const adjustmentPercent = prompt('Adjust all budget amounts by percentage (e.g., enter 10 to increase by 10% or -10 to decrease by 10%):', '0');
+        
+        if (adjustmentPercent === null) return; // User cancelled
+        
+        const percent = parseFloat(adjustmentPercent);
+        if (isNaN(percent)) {
+            alert('Please enter a valid number.');
+            return;
+        }
+        
+        const amountInputs = document.querySelectorAll('#edit-categories-container input[type="number"]');
+        amountInputs.forEach(input => {
+            let value = parseFloat(input.value || 0);
+            value = value * (1 + percent/100);
+            input.value = value.toFixed(2);
+        });
+    });
+    
+    // Reindex category names after removing a row in edit modal
+    function reindexEditCategories() {
+        const container = document.getElementById('edit-categories-container');
+        const rows = container.querySelectorAll('.edit-category-row');
+        
+        rows.forEach((row, index) => {
+            const categoryInput = row.querySelector('input[type="text"]');
+            const amountInput = row.querySelector('input[type="number"]');
+            
+            categoryInput.name = `category_${index + 1}`;
+            amountInput.name = `amount_${index + 1}`;
+        });
+    }
+</script>
+{% endblock %}
+

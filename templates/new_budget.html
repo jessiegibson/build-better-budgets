@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}Create a New Budget - Budget App{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">
+            <i class="fas fa-money-bill-wave me-2"></i>Create New Budget
+        </h1>
+        <p class="text-muted">
+            Set budget limits for each category based on your spending history
+        </p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-plus-circle me-2"></i>Budget Details</h5>
+            </div>
+            <div class="card-body">
+                <form id="budget-form" method="POST" action="/budget/new">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Budget Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required 
+                                   placeholder="e.g., Monthly Budget March 2025">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="period" class="form-label">Budget Period</label>
+                            <select class="form-select" id="period" name="period">
+                                <option value="monthly" selected>Monthly</option>
+                                <option value="annual">Annual</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h5 class="mb-3">Budget Categories</h5>
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-info-circle me-1"></i> The suggested amounts below are based on your recurring expenses and past spending.
+                    </p>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12 text-end">
+                            <button type="button" id="adjust-all-btn" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fas fa-sliders-h me-1"></i> Adjust All
+                            </button>
+                            <button type="button" id="add-category-btn" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-plus me-1"></i> Add Category
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="categories-container">
+                        <!-- Initial category rows will be here -->
+                        {% if suggested_categories %}
+                            {% for category in suggested_categories %}
+                            <div class="row mb-3 category-row">
+                                <div class="col-md-5">
+                                    <input type="text" class="form-control" 
+                                           name="category_{{ loop.index }}" 
+                                           value="{{ category.category }}" 
+                                           placeholder="Category name" required>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" 
+                                               name="amount_{{ loop.index }}" 
+                                               value="{{ '%.2f'|format(category.suggested_amount) }}" 
+                                               min="0" step="0.01" placeholder="0.00" required>
+                                    </div>
+                                    {% if category.recurring %}
+                                    <small class="text-muted">
+                                        Based on recurring expense: ${{ '%.2f'|format(category.recurring_amount) }}
+                                    </small>
+                                    {% elif category.historical %}
+                                    <small class="text-muted">
+                                        Based on historical average: ${{ '%.2f'|format(category.historical_amount) }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-outline-danger remove-category-btn">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="row mb-3 category-row">
+                                <div class="col-md-5">
+                                    <input type="text" class="form-control" 
+                                           name="category_1" placeholder="Category name" required>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" 
+                                               name="amount_1" min="0" step="0.01" placeholder="0.00" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-outline-danger remove-category-btn">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Create Budget
+                            </button>
+                            <a href="/budgets" class="btn btn-outline-secondary ms-2">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Summary -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Budget Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div id="budget-chart" class="chart-container" style="height: 300px;"></div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between">
+                        <p class="mb-0">Total Budget:</p>
+                        <p class="mb-0 fw-bold" id="total-budget">$0.00</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb me-2"></i>Budget Tips</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <h6 class="mb-1">50/30/20 Rule</h6>
+                        <p class="mb-0">Consider allocating 50% to needs, 30% to wants, and 20% to savings or debt repayment.</p>
+                    </div>
+                    <div class="list-group-item">
+                        <h6 class="mb-1">Include Irregular Expenses</h6>
+                        <p class="mb-0">Don't forget to budget for quarterly or annual expenses like insurance or property taxes.</p>
+                    </div>
+                    <div class="list-group-item">
+                        <h6 class="mb-1">Review and Adjust</h6>
+                        <p class="mb-0">Your first budget is rarely perfect. Plan to review and adjust at the end of each period.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Set default dates: current month
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        
+        document.getElementById('start_date').valueAsDate = firstDay;
+        document.getElementById('end_date').valueAsDate = lastDay;
+        
+        // Initialize the chart
+        updateBudgetChart();
+    });
+    
+    // Handle adding new category row
+    document.getElementById('add-category-btn').addEventListener('click', function() {
+        const container = document.getElementById('categories-container');
+        const rows = container.querySelectorAll('.category-row');
+        const newIndex = rows.length + 1;
+        
+        const newRow = document.createElement('div');
+        newRow.className = 'row mb-3 category-row';
+        newRow.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" class="form-control" 
+                       name="category_${newIndex}" placeholder="Category name" required>
+            </div>
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" 
+                           name="amount_${newIndex}" min="0" step="0.01" placeholder="0.00" required>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger remove-category-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(newRow);
+        
+        // Add event listener to the new remove button
+        const newRemoveBtn = newRow.querySelector('.remove-category-btn');
+        newRemoveBtn.addEventListener('click', removeCategoryRow);
+        
+        // Add event listeners for updating chart
+        const newAmountInput = newRow.querySelector('input[type="number"]');
+        newAmountInput.addEventListener('change', updateBudgetChart);
+    });
+    
+    // Handle removing category row
+    const removeButtons = document.querySelectorAll('.remove-category-btn');
+    removeButtons.forEach(btn => {
+        btn.addEventListener('click', removeCategoryRow);
+    });
+    
+    function removeCategoryRow() {
+        // Don't remove if it's the only row
+        const container = document.getElementById('categories-container');
+        if (container.querySelectorAll('.category-row').length > 1) {
+            this.closest('.category-row').remove();
+            updateBudgetChart();
+            reindexCategories();
+        } else {
+            alert('You need at least one category in your budget.');
+        }
+    }
+    
+    // Reindex category names after removing a row
+    function reindexCategories() {
+        const container = document.getElementById('categories-container');
+        const rows = container.querySelectorAll('.category-row');
+        
+        rows.forEach((row, index) => {
+            const categoryInput = row.querySelector('input[type="text"]');
+            const amountInput = row.querySelector('input[type="number"]');
+            
+            categoryInput.name = `category_${index + 1}`;
+            amountInput.name = `amount_${index + 1}`;
+        });
+    }
+    
+    // Handle adjusting all amounts
+    document.getElementById('adjust-all-btn').addEventListener('click', function() {
+        const adjustmentPercent = prompt('Adjust all budget amounts by percentage (e.g., enter 10 to increase by 10% or -10 to decrease by 10%):', '0');
+        
+        if (adjustmentPercent === null) return; // User cancelled
+        
+        const percent = parseFloat(adjustmentPercent);
+        if (isNaN(percent)) {
+            alert('Please enter a valid number.');
+            return;
+        }
+        
+        const amountInputs = document.querySelectorAll('input[type="number"]');
+        amountInputs.forEach(input => {
+            let value = parseFloat(input.value || 0);
+            value = value * (1 + percent/100);
+            input.value = value.toFixed(2);
+        });
+        
+        updateBudgetChart();
+    });
+    
+    // Monitor all amount inputs for changes
+    const amountInputs = document.querySelectorAll('input[name^="amount_"]');
+    amountInputs.forEach(input => {
+        input.addEventListener('change', updateBudgetChart);
+    });
+    
+    // Update budget chart when amounts change
+    function updateBudgetChart() {
+        const categoryInputs = document.querySelectorAll('input[name^="category_"]');
+        const amountInputs = document.querySelectorAll('input[name^="amount_"]');
+        
+        const categories = [];
+        const amounts = [];
+        let totalBudget = 0;
+        
+        for (let i = 0; i < categoryInputs.length; i++) {
+            const category = categoryInputs[i].value || 'Category ' + (i + 1);
+            const amount = parseFloat(amountInputs[i].value || 0);
+            
+            if (amount > 0) {
+                categories.push(category);
+                amounts.push(amount);
+                totalBudget += amount;
+            }
+        }
+        
+        // Update total budget display
+        document.getElementById('total-budget').textContent = '$' + totalBudget.toFixed(2);
+        
+        // Create or update chart
+        const chartData = {
+            data: [{
+                type: 'pie',
+                labels: categories,
+                values: amounts,
+                textinfo: 'label+percent',
+                insidetextorientation: 'radial',
+                hole: 0.4
+            }],
+            layout: {
+                showlegend: false,
+                margin: {t: 0, b: 0, l: 0, r: 0},
+                height: 300
+            }
+        };
+        
+        Plotly.newPlot('budget-chart', chartData.data, chartData.layout);
+    }
+</script>
+{% endblock %}
+
