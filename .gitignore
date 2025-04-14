@@ -2,3 +2,5 @@ data/*
 go.mod
 db/*
 .env
+*.db
+.DS_Store
