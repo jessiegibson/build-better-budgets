@@ -14,7 +14,11 @@ A comprehensive Python-based application for importing, consolidating, classifyi
 - Generate budgets, forecasts, and financial goals
 - Create reports for tax filing and expense analysis
 - Web interface for browsing, categorizing, budgeting, forecasting, and goal tracking
-
+- [NEW] Add receipt photo uploads:
+  - Parse and extract line items using OCR (Tesseract)
+  - Match receipt totals to transactions
+  - Build inventory from SKU/description/amount data
+  - Supports classification per line item
 ---
 
 ## Installation
@@ -34,11 +38,45 @@ pip install -r requirements-ui.txt
 
 ## CLI Usage
 
+The application provides two command-line interfaces:
+
+### Main Application
+
 ```bash
 python src/app.py [OPTIONS]
 ```
 
-### Common Options
+### Data Ingestion Tool
+
+For importing transactions from various sources, use the dedicated ingestion tool:
+
+```bash
+python src/ingest.py [OPTIONS]
+```
+
+#### Ingestion Options
+
+- `--csv-dir PATH` : Directory containing CSV files to import
+- `--pdf-dir PATH` : Directory containing PDF files to import
+- `--qfx-dir PATH` : Directory containing QFX (Quicken) files to import
+- `--full` : Full import (bypasses incremental checks)
+- `--interactive` : Interactive mode for source detection
+- `--summary` : Show transaction summary after import
+- `--history` : Show import history
+
+Example usage:
+```bash
+# Import all data types from standard locations
+python src/ingest.py --csv-dir=data/csv --pdf-dir=data/pdf --qfx-dir=data/qfx
+
+# Import only CSV files and show transaction summary
+python src/ingest.py --csv-dir=data/csv --summary
+
+# Force full import of QFX files and show history
+python src/ingest.py --qfx-dir=data/qfx --full --history
+```
+
+### Main Application Options
 
 - `--full` : Full import (bypasses incremental checks)
 - `--interactive` : Prompt user for column/source mapping
@@ -82,27 +120,64 @@ Visit: http://localhost:5000
 ```
 budgeting-app/
 ├── data/              # Input data files (CSV/PDF/QFX)
-│   ├── *.csv
-│   └── pdf/
+│   ├── csv/ # CSV files for transactions
+│   └── pdf/ # PDF files for transactions
+│   └── receipts/ # receipts to be processed
+│   └── qfx/ # QFX files for transactions
+│   └── trans_detail/ # Detailed transaction data example Home Depot transaction detail w/ line items
+│   └── output/ # Output files for processed data
 ├── db/                # SQLite DB
 │   └── transactions.db
 ├── models/            # ML model output
 │   └── *.joblib
 ├── src/
-│   ├── app.py         # CLI entry point
 │   ├── __main__.py    # Alternate entry
-│   ├── data_ingestion.py
-│   ├── qfx_importer.py
-│   ├── pdf_extractor.py
-│   ├── ml_classifier.py
-│   ├── budget_forecast.py
-│   ├── budget_cashflow.py
-│   ├── tax_management.py
-│   ├── tax_section_179.py
-│   ├── classification.py
+│   ├──ingestion/
+│   ├────__init__.py
+│   ├────data_ingestion.py
+│   ├────qfx_importer.py
+│   ├────pdf_extractor.py
+│   ├──classification/
+│   ├────__init__.py
+│   ├────ml_classifier.py
+│   ├──budgeting/
+│   ├────__init__.py
+│   ├────budget_forecast.py
+│   ├────budget_cashflow.py
+│   ├──tax/
+│   ├────__init__.py
+│   ├────tax_management.py
+│   ├────tax_section_179.py
+│   ├──cli/
+│   ├────__init__.py
+│   ├────app.py         # CLI entry point
+│   ├────classification.py
+│   ├──static/ # CSS, JS, Images
+│   ├────css/
+│   ├─────style.css
+│   ├────img/
+│   ├────js/
+│   ├─────app.js
+│   ├──templates/
+│   ├────analyze.htm
+│   ├────base.htm
+│   ├────budgets.htm
+│   ├────categorize_processing.htm
+│   ├────categorize.htm
+│   ├────forecast.htm
+│   ├────goals.htm
+│   ├────index.htm
+│   ├────new_budget.htm
+│   ├────new_goal.htm
+│   ├────tax_depreciation.htm
+│   ├────tax_item_edit.htm
+│   ├────tax_report.htm
+│   ├────transaction_detail.htm
+│   ├────transactions.htm
+│   ├──utilities/
+│   ├────__init__.py
+│   ├────utilities.py
 │   └ ui.py          # Web interface
-├── templates/         # HTML templates
-├── static/            # CSS, JS, Images
 ├── logs/              # Log files
 └── tests/             # Test modules
 ```
@@ -113,7 +188,7 @@ budgeting-app/
 
 **consolidated_transactions**
 - `date_posted`, `description`, `amount`, `category`, `details`, `source`
-- Flags: `rental_related`, `recurring`, `subscription`, `tax_deductible`, `equipment_tools`
+- Flags: `rental_related`, `recurring`, `subscription`, `tax_deductible`, `equipment_tools`, `receipt_matched`
 - Metadata: `expense_category`, `recurring_group`, `recurring_freq`, `purchase_date`, `asset_value`, `depreciation_years`, `notes`
 
 **tax_items**
@@ -144,7 +219,7 @@ QFX import:
 ## Machine Learning Classification
 
 - TF-IDF + Random Forest
-- Modes: `category`, `rental`, `recurring`, `subscription`, `tax`, `equipment`
+- Modes: `category`, `rental`, `recurring`, `subscriptions`, `tax`, `equipment`, `sales_tax`
 - Trained models saved under `models/`
 - Can batch predict with confidence thresholds
 - Interactive CLI classifier for human-in-the-loop training
@@ -170,17 +245,4 @@ QFX import:
 ---
 
 ## Roadmap
-
-- 📱 Mobile-friendly interface
-- ☁️ Cloud sync
 - 📤 Document upload/archive
-- 👥 Multi-user support
-
----
-
-## License
-
-MIT License
-
-
-
